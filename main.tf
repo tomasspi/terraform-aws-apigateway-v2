@@ -1,8 +1,6 @@
 locals {
   is_http      = var.protocol_type == "HTTP"
   is_websocket = var.protocol_type == "WEBSOCKET"
-
-  create_routes_and_integrations = var.create && var.create_routes_and_integrations
 }
 
 ################################################################################
@@ -183,9 +181,9 @@ module "acm" {
 ################################################################################
 
 resource "aws_apigatewayv2_route" "this" {
-  for_each = { for k, v in var.routes : k => v if local.create_routes_and_integrations }
+  for_each = { for k, v in var.routes : k => v if var.create_routes_and_integrations }
 
-  api_id = aws_apigatewayv2_api.this[0].id
+  api_id = var.external_api_id != null ? var.external_api_id : aws_apigatewayv2_api.this[0].id
 
   api_key_required           = local.is_websocket ? each.value.api_key_required : null
   authorization_scopes       = each.value.authorization_scopes
@@ -214,9 +212,9 @@ resource "aws_apigatewayv2_route" "this" {
 ################################################################################
 
 resource "aws_apigatewayv2_route_response" "this" {
-  for_each = { for k, v in var.routes : k => v if local.create_routes_and_integrations && coalesce(v.route_response.create, false) }
+  for_each = { for k, v in var.routes : k => v if var.create_routes_and_integrations && coalesce(v.route_response.create, false) }
 
-  api_id                     = aws_apigatewayv2_api.this[0].id
+  api_id                     = var.external_api_id != null ? var.external_api_id : aws_apigatewayv2_api.this[0].id
   model_selection_expression = each.value.route_response.model_selection_expression
   response_models            = each.value.route_response.response_models
   route_id                   = aws_apigatewayv2_route.this[each.key].id
@@ -228,9 +226,9 @@ resource "aws_apigatewayv2_route_response" "this" {
 ################################################################################
 
 resource "aws_apigatewayv2_integration" "this" {
-  for_each = { for k, v in var.routes : k => v.integration if local.create_routes_and_integrations }
+  for_each = { for k, v in var.routes : k => v.integration if var.create_routes_and_integrations }
 
-  api_id = aws_apigatewayv2_api.this[0].id
+  api_id = var.external_api_id != null ? var.external_api_id : aws_apigatewayv2_api.this[0].id
 
   connection_id             = try(aws_apigatewayv2_vpc_link.this[each.value.vpc_link_key].id, each.value.connection_id)
   connection_type           = each.value.connection_type
@@ -276,9 +274,9 @@ resource "aws_apigatewayv2_integration" "this" {
 ################################################################################
 
 resource "aws_apigatewayv2_integration_response" "this" {
-  for_each = { for k, v in var.routes : k => v.integration if local.create_routes_and_integrations && v.integration.response.integration_response_key != null }
+  for_each = { for k, v in var.routes : k => v.integration if var.create_routes_and_integrations && v.integration.response.integration_response_key != null }
 
-  api_id         = aws_apigatewayv2_api.this[0].id
+  api_id         = var.external_api_id != null ? var.external_api_id : aws_apigatewayv2_api.this[0].id
   integration_id = aws_apigatewayv2_integration.this[each.key].id
 
   content_handling_strategy     = each.value.response.content_handling_strategy

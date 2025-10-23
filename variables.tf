@@ -13,6 +13,11 @@ variable "tags" {
 ################################################################################
 # API Gateway
 ################################################################################
+variable "external_api_id" {
+  description = "External API Gateway ID to attach routes to. When provided, routes will be attached to this API instead of creating a new one."
+  type        = string
+  default     = null
+}
 
 variable "api_key_selection_expression" {
   description = "An API key selection expression. Valid values: `$context.authorizer.usageIdentifierKey`, `$request.header.x-api-key`. Defaults to `$request.header.x-api-key`. Applicable for WebSocket APIs"
